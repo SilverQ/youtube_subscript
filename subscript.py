@@ -6,31 +6,23 @@ import streamlit as st
 
 
 # 함수: YouTube 채널 URL에서 채널 ID 추출
-def get_channel_id_from_url(url):
-    try:
-        # URL에서 채널 ID 추출 (SSL 검증 비활성화)
-        response = requests.get(url, verify=False)
+def get_channel_id(handle):
+    url = f"https://www.youtube.com/{handle}"
+    response = requests.get(url, verify=False)
+    # print(response.text)
+    # print(response.content)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    # Find the channel ID in the meta tags
+    # channel_id_meta = soup.find("meta", {"itemprop": "name"})
 
-        if response.status_code != 200:
-            return f"Error: Unable to access the channel page. Status code: {response.status_code}"
+    channel_id_meta = soup.find("meta", {"itemprop": "channelId"})
+    if channel_id_meta:
+        return channel_id_meta["content"]
 
-        # HTML 파싱
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        # 메타 태그에서 채널 ID 추출
-        channel_id_meta = soup.find("meta", {"itemprop": "channelId"})
-        if channel_id_meta:
-            return channel_id_meta["content"]
-
-        # 대체 방법: 링크에서 채널 ID 추출
-        for link in soup.find_all('a'):
-            href = link.get('href')
-            if href and 'channel/' in href:
-                return href.split('channel/')[1]
-
-        return "채널 ID를 찾을 수 없습니다."
-    except Exception as e:
-        return f"Error: {str(e)}"
+    channel_id_meta = soup.find("meta", {"itemprop": "identifier"})
+    if channel_id_meta:
+        return channel_id_meta["content"]
+    return "Channel ID not found"
 
 
 # Streamlit 앱 제목 설정
@@ -43,8 +35,8 @@ channel_url = st.text_input("유튜브 채널 URL을 입력하세요 (예: https
 if st.button("채널 ID 및 RSS 피드 생성"):
     if channel_url:
         # 채널 ID 가져오기
-        # channel_id = get_channel_id_from_url(channel_url)
-        channel_id = 'UChlv4GSd7OQl3js-jkLOnFA'
+        channel_id = get_channel_id(channel_url)
+        # channel_id = 'UChlv4GSd7OQl3js-jkLOnFA'
         if "Error" in channel_id:
             st.error(f"채널 ID를 가져오는 중 오류가 발생했습니다: {channel_id}")
         else:
